@@ -4,74 +4,92 @@
  @author Dirk Ohme <dirk_ohme@hotmail.com>
 */
 
+#include "Wire.h"
 #include "MCP3421.h"
 
 /**
  @brief Constructor
 */
-CMCP3421::CMCP3421(uint8_t addr) {
-  _i2caddr = addr;
-  Wire.begin();
+CMCP3421::CMCP3421(uint8_t u8Addr /*= DefaultAddress*/)
+{
+	u8Addr_m = u8Addr;
+	Wire.begin();
 }
 
 /**
  @brief Initialize device
  @param [in] config Configure Parameter
 */
-void CMCP3421::init() {
- byte conf = MCP3421_CONFIG_RDY_ON;
- conf |= MCP3421_CONFIG_CONV_CONTINUOUS;
- conf |= MCP3421_CONFIG_RATE_3_75SPS;
- conf |= MCP3421_CONFIG_GAIN_X8;
-
- writeI2c(conf);
+void CMCP3421::Init(bool        boRepeat /*= false*/,
+                    ESampleRate eSR      /*= eSR_18Bit*/,
+		    EGain       eGain    /*= eGain_x1*/,
+		    TwoWire*    coI2C    /*= &Wire*/)
+{
+	coI2C_m          = coI2C;
+	suCfg_m.reg      = 0x00;
+	suCfg_m.bit.GAIN = ((uint8_t)eGain & 0x03);
+	suCfg_m.bit.SR   = ((uint8_t)eSR   & 0x03);
+	suCfg_m.bit.OC   = (boRepeat) ? 1 : 0;
+	_WriteI2c(suCfg_m.reg);
 }
 
 /**
- @brief Read ADC value
- @param [out] value Temperature Data
+ @brief Check if next value is ready
+ @param [out] bool true if ready or false if not
 */
-int32_t CMCP3421::readADC()
+bool CMCP3421::IsReady()
 {
-  int32_t data;
-  double temp;
-  uint16_t mvuv = 1 << (3+2*3);
-  byte sign = 0x00;
-  byte buffer[4];
-  readI2c(4, buffer);
+	if (_ReadI2c() < 0)
+		return false;
+	
+	return (suStatus_m.bit.RDY == 0) ? true : false;
+}
 
-  sign = buffer[0] & 0x80 ? 0xff : 0;
-  data = (sign << 24) + (buffer[0] << 16) + (buffer[1] << 8) + buffer[2];
-  temp = (((double)data * 1000 )/mvuv + cp) / 40.7;
+/**
+ @brief Trigger one conversion
+*/
+void CMCP3421::Trigger()
+{
+	_WriteI2c(suCfg_m.reg | 0x80);
+}
 
-  return temp;
+/**
+ @brief Read I2C
+ @param [out] 0 on success or -1 on error
+*/
+int CMCP3421::_ReadI2c()
+{
+	uint8_t u8Data;
+	uint8_t u8Len = (suCfg_m.bit.SR == eSR_18Bit) ? 4 : 3;
+	
+	if ((u8Len != coI2C_m->requestFrom(u8Addr_m, u8Len)) ||
+	    (u8Len < 3))
+		return -1;
+	
+	u8Data     = (uint8_t)coI2C_m->read();
+	s32Value_m = ((u8Data & 0x80) != 0) ? -1 : 0;
+	s32Value_m = (s32Value_m & 0xFFFFFF00) | u8Data;
+	
+	for (u8Len--; u8Len > 1; u8Len--)
+	{
+		s32Value_m <<= 8;
+		s32Value_m  |= (uint8_t)coI2C_m->read();
+	}
+	
+	suStatus_m.reg = (uint8_t)coI2C_m->read();
+	return 0;
 }
 
 /**
  @brief Write I2C
  @param [in] value write data
 */
-void CMCP3421::writeI2c(uint8_t value) {
-  Wire.beginTransmission(_i2caddr);
-  Wire.write(value);
-  Wire.endTransmission();
+void CMCP3421::_WriteI2c(uint8_t u8Value)
+{
+	coI2C_m->begin();
+	coI2C_m->beginTransmission(u8Addr_m);
+	coI2C_m->write(u8Value);
+	coI2C_m->endTransmission();
 }
 
-/**
- @brief Read I2C
- @param [in] num read length
- @param [out] buffer read data
-*/
-void CMCP3421::readI2c(uint8_t num, uint8_t *buffer) {
-  Wire.beginTransmission(_i2caddr);
-  Wire.endTransmission();
-
-  Wire.requestFrom(_i2caddr, num);
-
-  uint8_t i = 0;
-  while(Wire.available())
-  {
-    buffer[i] = Wire.read();
-    i++;
-  }
-}
+//===| eof - end of file |====================================================
