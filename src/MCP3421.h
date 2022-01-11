@@ -17,7 +17,7 @@
 class CMCP3421 {
   public:
 	static const uint32_t Version        = 0x01000000ul;
-	static const uint8_t  DefaultAddress = 0x69;
+	static const uint8_t  DefaultAddress = 0x68;
 
 	enum EGain {
 		eGain_x1 = 0,
@@ -34,13 +34,15 @@ class CMCP3421 {
 	};
   
   public:
-		CMCP3421(uint8_t u8Addr = DefaultAddress);
-	void		Init(bool        boRepeat = false,
-			     ESampleRate eSR      = eSR_18Bit,
-			     EGain       eGain    = eGain_x1,
-			     TwoWire*    coI2C    = &Wire);
+			CMCP3421(const float   fFactor = 1.0,
+			         const uint8_t u8Addr  = DefaultAddress);
+	void		Init(const bool        boRepeat = false,
+			     const ESampleRate eSR      = eSR_18Bit,
+			     const EGain       eGain    = eGain_x1,
+			           TwoWire*    coI2C    = &Wire);
 	bool		IsReady();
-	inline int32_t	ReadValue() { return s32Value_m; }
+	inline int32_t	ReadRaw()   { return s32Value_m; }
+	inline float	ReadValue() { return (fFactor_m * (float)s32Value_m); }
 	void		Trigger();
 
   private:
@@ -56,6 +58,7 @@ class CMCP3421 {
 	} Config;
 
 	TwoWire*	coI2C_m;
+	float		fFactor_m;
 	int32_t		s32Value_m;
 	Config		suCfg_m;
 	Config		suStatus_m;

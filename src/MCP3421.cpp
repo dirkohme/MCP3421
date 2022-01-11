@@ -10,9 +10,11 @@
 /**
  @brief Constructor
 */
-CMCP3421::CMCP3421(uint8_t u8Addr /*= DefaultAddress*/)
+CMCP3421::CMCP3421(const float   fFactor /*= 1.0*/,
+                   const uint8_t u8Addr  /*= DefaultAddress*/)
 {
-	u8Addr_m = u8Addr;
+	fFactor_m = fFactor;
+	u8Addr_m  = u8Addr;
 	Wire.begin();
 }
 
@@ -20,10 +22,10 @@ CMCP3421::CMCP3421(uint8_t u8Addr /*= DefaultAddress*/)
  @brief Initialize device
  @param [in] config Configure Parameter
 */
-void CMCP3421::Init(bool        boRepeat /*= false*/,
-                    ESampleRate eSR      /*= eSR_18Bit*/,
-		    EGain       eGain    /*= eGain_x1*/,
-		    TwoWire*    coI2C    /*= &Wire*/)
+void CMCP3421::Init(const bool        boRepeat /*= false*/,
+                    const ESampleRate eSR      /*= eSR_18Bit*/,
+		    const EGain       eGain    /*= eGain_x1*/,
+		          TwoWire*    coI2C    /*= &Wire*/)
 {
 	coI2C_m          = coI2C;
 	suCfg_m.reg      = 0x00;
