@@ -13,6 +13,10 @@ MCP3421 is 18-Bit Analog-to-Digital Converter.
 ## Releases
 
 - 1.0.0 Initial release.
+- 1.0.1 adaption for GitHub and Arduino repository
+- 1.0.2 adaption for GitHub and Arduino repository
+- 1.0.3 adaption for GitHub and Arduino repository
+- 1.0.4 adaption for GitHub and Arduino repository
 
 ## How to install
 
